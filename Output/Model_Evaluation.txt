@@ -1,0 +1,17 @@
+Classification report of model evaluation
+              precision    recall  f1-score   support
+
+     HIV-1.M      1.000     1.000     1.000        32
+     HIV-1.N      1.000     1.000     1.000        11
+     HIV-1.O      1.000     1.000     1.000        32
+     HIV-1.P      1.000     1.000     1.000         5
+
+    accuracy                          1.000        80
+   macro avg      1.000     1.000     1.000        80
+weighted avg      1.000     1.000     1.000        80
+
+Confusion matrix 
+[[32  0  0  0]
+ [ 0 11  0  0]
+ [ 0  0 32  0]
+ [ 0  0  0  5]]
