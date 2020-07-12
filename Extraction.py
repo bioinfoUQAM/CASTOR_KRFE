@@ -41,6 +41,7 @@ def extractKmers(T, training_data, k_min, k_max, features_min, features_max):
 		# If more than features_max  apply RFE (remove 10 % of features to remove at each iteration)
 		if len(X[0]) > features_max:
 			print("Preliminary recursive feature elimination...")	
+			from sklearn.feature_selection import RFE
 			rfe = RFE(estimator = classifier, n_features_to_select = features_max, step = 0.1)
 			X = numpy.matrix(X)
 			X = rfe.fit_transform(X, y)
