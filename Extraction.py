@@ -136,11 +136,12 @@ def extractKmers(T, training_data, k_min, k_max, features_min, features_max):
 	# Save plot results
 	fig = plt.figure(figsize = (12, 10) )
 	for i, s in enumerate(scores_list):
+		print(i, s)
 		label = str(k_mers_range[i]) + "-mers"
-		plt.plot(range(len(s)), s, label = label)
+		plt.plot(range(1, len(s) + 1, 1), s, label = label)
 	plt.ylabel("F-measure")
 	plt.xlabel("Number of features")
-	plt.axvline(index, linestyle = ':', color = 'r')
+	plt.axvline(index + 1, linestyle = ':', color = 'r')
 	title = "F-measure : " + str(round(optimal_score, 3)) + " K-mer size : " + str(identified_k_length) + " Number of features : " + str(index + 1)
 	plt.title(title)
 	plt.legend()
