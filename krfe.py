@@ -5,12 +5,13 @@ import data
 import kmers
 import numpy
 import matrix
-from sklearn.feature_selection import RFE
-from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import cross_val_predict
+import matplotlib.pyplot as plt
+from sklearn.feature_selection import RFE, VarianceThreshold
+from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
 # Function to extract the discriminating k-mers
 def extract(parameters):
+	history = []
 	# Initialize the maximum score
 	max_score = 0
 	# Initialize the best identified score
@@ -46,7 +47,24 @@ def extract(parameters):
 		X, y = matrix.generateSamplesTargets(D, K , k)
 		# Scale the features between 0 and 1
 		X = ml.minMaxScaler(X)
-		#  Instantiate a linear svm classifier
+		# If it is possible to apply a variance filter
+		try:
+			# Instancies the filter method
+			varianceThreshold = VarianceThreshold(threshold = 0.01)
+			# Apply the filter
+			X = varianceThreshold.fit_transform(X)
+			# Initialize the list of k-mers to delete
+			delete = []
+			# Iterate through the variance threshold support
+			for i, value in enumerate(varianceThreshold.get_support()):
+				# If support is egal to false, add to the list of k-mers to delete
+				if value == False: delete.append(list(K.keys())[i])
+			# Delete all the k-mers of the list from the initial dictionary
+			for key in delete: del K[key]
+		# If not, pass on
+		except: pass
+
+		# Instantiate a linear svm classifier
 		clf = ml.svm()
 		# Preliminary RFE if n features > 1000 
 		rfe = RFE(estimator = clf , n_features_to_select = 1000, step = 0.1)
@@ -80,7 +98,7 @@ def extract(parameters):
 			# Split the data using stratified K-Folds cross-validator
 			skf = StratifiedKFold(n_splits = 5, random_state = 1, shuffle = True)
 			# Perform the cross-validation for the actual subset of features
-			y_pred = cross_val_predict(clf, X[:,indices], y, cv = skf, n_jobs = 4)
+			y_pred = cross_val_predict(clf, X[:,indices], y, cv = skf, n_jobs = -1)
 			# Compute the F1 score of the actual subset of features
 			score = ml.compute_f1_score(y, y_pred)
 			# Save the score of the actual subset of features
@@ -111,6 +129,21 @@ def extract(parameters):
 				best_k_length = k
 				best_features_number = n
 				best_k_mers = [list(K.keys())[i] for i in selected_features[n_features.index(best_features_number)]]
+
+		# Save the history
+		history.append(scores)
+
+	# Plot the history
+	for i, h in enumerate(history): 
+		label = str(list(range(k_min, k_max + 1))[i]) + "-mers"
+		plt.plot(list(range(1, len(h) + 1))[0:100], h[0:100], label = label)
+		plt.axvline(best_features_number, linestyle=':', color='r')
+		plt.suptitle("Distribution of F1-scores according to the length of k and the number of features", fontsize = 12)
+		plt.title("Solution: F1 score = " + str(round(best_score, 2)) + ", Number of features = " + str(best_features_number) + ", Length of k = " + str(best_k_length), fontsize = 10)
+		plt.xlabel('Number of features', fontsize = 10)
+		plt.ylabel('F1 score', fontsize = 10)
+		plt.legend()
+	plt.show()
 
 	# Save the extracted k-mers
 	kmers.saveExtractedKmers(k_mers_path, best_k_mers)
