@@ -6,6 +6,7 @@ import kmers
 import numpy
 import matrix
 import matplotlib.pyplot as plt
+from operator import itemgetter
 from sklearn.feature_selection import RFE, VarianceThreshold
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
@@ -50,17 +51,15 @@ def extract(parameters):
 		# If it is possible to apply a variance filter
 		try:
 			# Instancies the filter method
-			varianceThreshold = VarianceThreshold(threshold = 0.01)
+			varianceThreshold = VarianceThreshold(threshold = 0.1)
 			# Apply the filter
 			X = varianceThreshold.fit_transform(X)
-			# Initialize the list of k-mers to delete
-			delete = []
-			# Iterate through the variance threshold support
-			for i, value in enumerate(varianceThreshold.get_support()):
-				# If support is egal to false, add to the list of k-mers to delete
-				if value == False: delete.append(list(K.keys())[i])
-			# Delete all the k-mers of the list from the initial dictionary
-			for key in delete: del K[key]
+			# Compute the list of k-mers indices to retain 
+			indices = [i for i, value in enumerate(varianceThreshold.get_support()) if value == True]
+			# Update the list of k-mers
+			K = dict.fromkeys(list(itemgetter(*indices)(list(K.keys()))), 0)
+			# Clear the indices list
+			indices.clear()
 		# If not, pass on
 		except: pass
 
@@ -70,14 +69,12 @@ def extract(parameters):
 		rfe = RFE(estimator = clf , n_features_to_select = 1000, step = 0.1)
 		# Fit and transform the initial matrix
 		X = rfe.fit_transform(X, y)
-		# Initialize the list of k-mers to delete
-		delete = []
-		# Iterate through the rfe support
-		for i, value in enumerate(rfe.support_):
-			# If support is egal to false, add to the list of k-mers to delete
-			if value == False: delete.append(list(K.keys())[i])
-		# Delete all the k-mers of the list from the initial dictionary
-		for key in delete: del K[key]
+		# Compute the list of k-mers indices to retain 
+		indices = [i for i, value in enumerate(rfe.support_) if value == True]
+		# Update the list of k-mers
+		K = dict.fromkeys(list(itemgetter(*indices)(list(K.keys()))), 0)
+		# Clear the indices list
+		indices.clear()
 
 		# List of scores related to each subset of features
 		scores = []
