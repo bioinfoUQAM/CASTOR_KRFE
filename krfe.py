@@ -51,7 +51,7 @@ def extract(parameters):
 		# If it is possible to apply a variance filter
 		try:
 			# Instancies the filter method
-			varianceThreshold = VarianceThreshold(threshold = 0.1)
+			varianceThreshold = VarianceThreshold(threshold = 0.01)
 			# Apply the filter
 			X = varianceThreshold.fit_transform(X)
 			# Compute the list of k-mers indices to retain 
@@ -121,7 +121,7 @@ def extract(parameters):
 			
 		# Get best solution according to the threshold T
 		for s, n in zip(scores, n_features):
-			if s >= max_score*T and n < best_features_number: 
+			if s >= max_score*T and n <= best_features_number: 
 				best_score = s
 				best_k_length = k
 				best_features_number = n
