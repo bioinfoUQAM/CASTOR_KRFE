@@ -2,6 +2,8 @@
 import ml
 import sys
 import krfe
+import time
+import analyzer
 import configuration
 
 # Main program loop
@@ -10,7 +12,7 @@ while(True):
 	print("\n#######################")
 	print("##### CASTOR-KRFE #####")
 	print("#######################")
-	print("\n1) Extract k-mers\n2) Fit a model\n3) Predict a sequences\n4) Exit/Quit")
+	print("\n1) Extract k-mers\n2) Fit a model\n3) Predict a sequences\n4) Motif analyzer (New)\n5) Exit/Quit")
 	# Get the selected option
 	option = int(input("\nSelect an option: "))
 	# Get/Update the parameters
@@ -20,15 +22,22 @@ while(True):
 		print("\nCASTOR-KRFE: extraction mode\n")
 		krfe.extract(parameters)
 	# Fit a model using a set of k-mers
-	elif  option == 2: 
+	elif option == 2: 
 		print("\nCASTOR-KRFE: training mode\n")
 		ml.fit(parameters)
 	# Predict a set of sequences
-	elif  option == 3: 
+	elif option == 3: 
 		print("\nCASTOR-KRFE: testing mode\n")
 		ml.predict(parameters)
-	# Quit the program
+	# Analyzer the identified k-mers
 	elif option == 4: 
+		#start = time.time()
+		print("\nCASTOR-KRFE: motif analyzer mode\n")
+		Results = analyzer.identifyPerfectMatch(parameters)	
+		Results = analyzer.identifyVariations(Results, parameters)
+		Results = analyzer.extractRelatedInformation(Results, parameters)
+	# Quit the program
+	elif option == 5: 
 		print("Program exit")
 		sys.exit(0)
 	# If the mode specified is not valid
