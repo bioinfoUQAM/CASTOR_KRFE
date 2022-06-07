@@ -16,6 +16,7 @@ def getParameters(configuration_file):
 	parameters["k_mers_path"] = configurationParser.get("parameters", "k_mers_path")
 	parameters["testing_fasta"] = configurationParser.get("parameters", "testing_fasta")
 	parameters["training_fasta"] = configurationParser.get("parameters", "training_fasta")
+	parameters["refence_sequence_genbank"] = configurationParser.get("parameters", "reference_sequence")
 	parameters["prediction_path"] = configurationParser.get("parameters", "prediction_path")
 	parameters["evaluation_mode"] = configurationParser.get("parameters", "evaluation_mode")
 	# Return the parameter dictionary
