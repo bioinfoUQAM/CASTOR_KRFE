@@ -1,6 +1,6 @@
 # CASTOR-KRFE
 * CASTOR-KRFE v1.3 Help file																		  
-* K-mers based feature extractor for viral genomic classification                               
+* K-mers based feature identifier for viral genomic classification                            
 * Copyright (C) 2022  Dylan Lebatteux, Amine M. Remita, Abdoulaye Banire Diallo    
 * Author : Dylan Lebatteux, Amine M. Remita													  
 * Contact : lebatteux.dylan@courrier.uqam.ca
@@ -12,7 +12,8 @@ CASTOR-KRFE is an alignment-free method to identify a set of genomic signatures 
 * [python](https://www.python.org/downloads/) 
 * [scikit-learn](https://scikit-learn.org/stable/install.html) 
 * [numpy](https://numpy.org/install/)                        
-* [biopython](https://biopython.org/wiki/Download)    
+* [biopython](https://biopython.org/wiki/Download)  
+* [joblib](https://joblib.readthedocs.io/en/latest/)
 
 ### Parameters
 List of parameters requiring adjustment in the configuration_file.ini :
