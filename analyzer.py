@@ -8,6 +8,7 @@
 ###############
 ### Imports ###
 ###############
+import os
 import re
 import data
 import kmers
@@ -53,7 +54,8 @@ def localPairwiseSequenceAlignmentMutatededMotif(records, data, query, position)
                 # Compute the margin
                 margin = int(len(data[1]) * 10 / 100)
                 # Correct margin if it is too large
-                if margin > 1000: margin = 1000
+                if margin > 1000 and len(data[1]) < 100000: margin = 1000
+                if margin > 1000 and len(data[1]) >= 100000: margin = 2500
                 # Get the position of interest
                 start = position - margin
                 end = position + margin
@@ -265,101 +267,156 @@ def extractRelatedInformation (Results, parameters):
     print("\nExtract information related to signatures/variations...")
     # Get the reference fil path
     gb_reference_file = str(parameters["refence_sequence_genbank"])
-    # Open the reference sequence genbank file
-    for gb_record in SeqIO.parse(open(gb_reference_file, "r"), "genbank"):
+     # Check if genbank file exists
+    file_exists = os.path.exists(gb_reference_file)
+    # If there is genbank file
+    if file_exists == True:
+        # Open the reference sequence genbank file
+        for gb_record in SeqIO.parse(open(gb_reference_file, "r"), "genbank"):
+            # Iterate through the sequences records for each pattern
+            for key, records in Results.items():
+                print("Signature: " + key)
+                # Variable to check if cds was found
+                isCDS = False
+                # Iterate through the sequences records
+                for record in records:
+                    # Find the reference sequence to get the informations 
+                    if record["id"] == gb_record.annotations["accessions"][0]: 
+                        # Initialize the dict of reference sequence abd save initial informations
+                        reference_sequence_informations = {}
+                        reference_sequence_informations["id"] = record["id"]
+                        reference_sequence_informations["pattern"] = record["pattern"]
+                        reference_sequence_informations["position"] = record["position"]
+                        reference_sequence_informations["mutated_pattern"] = None
+                        reference_sequence_informations["mutation"] = None             
+                        # Iterate through the features of the reference sequence
+                        for feature in gb_record.features:
+                            # Get the organisme informations
+                            if feature.type == "source": 
+                                try: reference_sequence_informations["organisme"] = feature.qualifiers["organism"][0]
+                                except: reference_sequence_informations["organisme"] = None
+                            # If the feature is CDS
+                            if feature.type == "CDS": 
+                                # Get the nucleotide sequence associated to to the CDS
+                                cds = feature.location.extract(gb_record.seq)
+                                # If the nucleotide sequence contains the pattern
+                                if cds.find(record["pattern"]) != -1:
+                                    # Set is CDS to true
+                                    isCDS = True
+                                    # Initialize list of data to save
+                                    data = []
+                                    # Get the  informations
+                                    try: reference_sequence_informations["gene"] = feature.qualifiers["gene"][0]
+                                    except: reference_sequence_informations["gene"] = None
+                                    try: reference_sequence_informations["nucleotide_sequence"] = feature.location.extract(gb_record.seq)
+                                    except: reference_sequence_informations["nucleotide_sequence"] = None
+                                    try: reference_sequence_informations["position_gene_sequence"] = reference_sequence_informations["nucleotide_sequence"].find(record["pattern"])
+                                    except: reference_sequence_informations["position_gene_sequence"] = None
+                                    try: reference_sequence_informations["amino_acid_sequence"] = feature.qualifiers["translation"][0]
+                                    except: reference_sequence_informations["amino_acid_sequence"] = None
+                                    # Iterate through the sequences records to complte the infornations according to the reference informations
+                                    data = Parallel(n_jobs = -1)(delayed(indentifyMutationInformation)(record, reference_sequence_informations) for record in records)
+                                    # Compute the frequency
+                                    for d1 in data: 
+                                        organisme_type = d1[2]
+                                        pattern = d1[4]
+                                        n_total = 0 
+                                        n_pattern = 0
+                                        for d2 in data:
+                                            if organisme_type == d2[2]: 
+                                                n_total = n_total + 1
+                                                if pattern == d2[4]: 
+                                                    n_pattern = n_pattern + 1
+                                        frequency = int(n_pattern / n_total * 100)
+                                        d1.append(frequency)
+
+                                    # Convert data to dataframe      
+                                    df = pd.DataFrame(data, columns = ["SEQUENCE ID", "ORGANISM", "TYPE", "INITIAL PATTERN", "MUTATED PATTERN", "GENE", "MUTATIONS", "LOCATION", "FREQUENCY"])
+                                    # Save the dataframe to excel file
+                                    df.to_excel("output/" + key + "_gene_" + reference_sequence_informations["gene"] + ".xlsx")
+                        
+                        # Check for other features
+                        if isCDS == False:
+                            data = []
+                            # Iterate through the features of the reference sequence
+                            for feature in gb_record.features:
+                                seq = feature.location.extract(gb_record.seq)
+                                # If the nucleotide sequence contains the pattern
+                                if seq.find(record["pattern"]) != -1: 
+                                    # Save informations
+                                    if feature.type == "rep_origin" or feature.type == "gene" or feature.type == "misc_feature" or feature.type == "repeat_region":  
+                                        if feature.type == "gene":
+                                            try: reference_sequence_informations["gene"] = feature.qualifiers["gene"][0]
+                                            except: reference_sequence_informations["gene"] = "None"
+                                        elif feature.type == "repeat_region":
+                                            try: reference_sequence_informations["gene"] = "Repeat region"
+                                            except: reference_sequence_informations["gene"] = "None"
+                                        else:  
+                                            try: reference_sequence_informations["gene"] = feature.qualifiers["note"][0]
+                                            except: reference_sequence_informations["gene"] = "None"
+
+                            # If no feature identified
+                            if "gene" not in reference_sequence_informations: reference_sequence_informations["gene"] = "None"
+            
+                            # Iterate through the sequences records to complete the infornations according to the reference informations
+                            for record in records:
+                                # If same pattern as reference sequence 
+                                if record["pattern"] == reference_sequence_informations["pattern"]:
+                                    data.append([record["id"], reference_sequence_informations["organisme"], record["type"], reference_sequence_informations["pattern"], None, reference_sequence_informations["gene"], None, record["position"]])
+                                # If different pattern as reference sequence        
+                                else: 
+                                    if record["pattern"] != None:
+                                        data.append([record["id"], reference_sequence_informations["organisme"], record["type"],reference_sequence_informations["pattern"],record["pattern"], reference_sequence_informations["gene"], "No CDS",record["position"]])
+                                        
+                                    # If unidentified pattern
+                                    else: 
+                                        data.append([record["id"], reference_sequence_informations["organisme"], record["type"], reference_sequence_informations["pattern"], "Not identified", "Not identified", "Not identified", "Not identified"])
+                                    
+                            # Compute the frequency
+                            for d1 in data: 
+                                organisme_type = d1[2]
+                                pattern = d1[4]
+                                n_total = 0 
+                                n_pattern = 0
+
+                                for d2 in data:
+                                    if organisme_type == d2[2]: 
+                                        n_total = n_total + 1
+                                        if pattern == d2[4]: 
+                                            n_pattern = n_pattern + 1
+                                frequency = int(n_pattern / n_total * 100)
+                                d1.append(frequency) 
+
+                            # Convert data to dataframe      
+                            df = pd.DataFrame(data, columns = ["SEQUENCE ID", "ORGANISM", "TYPE", "INITIAL PATTERN", "MUTATED PATTERN", "GENE", "MUTATIONS", "LOCATION", "FREQUENCY"])
+                            # Save the dataframe to excel file
+                            df.to_excel("output/" + key + "_gene_" + reference_sequence_informations["gene"] + ".xlsx") 
+
+    # If no genbank reference sequence
+    else:
         # Iterate through the sequences records for each pattern
         for key, records in Results.items():
-            print("Signature: " + key)
-            # Variable to check if cds was found
-            isCDS = False
+            data = []
             # Iterate through the sequences records
-            for record in records:
-                # Find the reference sequence to get the informations 
-                if record["id"] == gb_record.annotations["accessions"][0]: 
-                    # Initialize the dict of reference sequence abd save initial informations
-                    reference_sequence_informations = {}
-                    reference_sequence_informations["id"] = record["id"]
-                    reference_sequence_informations["pattern"] = record["pattern"]
-                    reference_sequence_informations["position"] = record["position"]
-                    reference_sequence_informations["mutated_pattern"] = None
-                    reference_sequence_informations["mutation"] = None             
-                    # Iterate through the features of the reference sequence
-                    for feature in gb_record.features:
-                        # Get the organisme informations
-                        if feature.type == "source": 
-                            try: reference_sequence_informations["organisme"] = feature.qualifiers["organism"][0]
-                            except: reference_sequence_informations["organisme"] = None
-                        # If the feature is CDS
-                        if feature.type == "CDS": 
-                            # Get the nucleotide sequence associated to to the CDS
-                            cds = feature.location.extract(gb_record.seq)
-                            # If the nucleotide sequence contains the pattern
-                            if cds.find(record["pattern"]) != -1:
-                                # Set is CDS to true
-                                isCDS = True
-                                # Initialize list of data to save
-                                data = []
-                                # Get the  informations
-                                try: reference_sequence_informations["gene"] = feature.qualifiers["gene"][0]
-                                except: reference_sequence_informations["gene"] = None
-                                try: reference_sequence_informations["nucleotide_sequence"] = feature.location.extract(gb_record.seq)
-                                except: reference_sequence_informations["nucleotide_sequence"] = None
-                                try: reference_sequence_informations["position_gene_sequence"] = reference_sequence_informations["nucleotide_sequence"].find(record["pattern"])
-                                except: reference_sequence_informations["position_gene_sequence"] = None
-                                try: reference_sequence_informations["amino_acid_sequence"] = feature.qualifiers["translation"][0]
-                                except: reference_sequence_informations["amino_acid_sequence"] = None
-                                # Iterate through the sequences records to complte the infornations according to the reference informations
-                                data = Parallel(n_jobs = -1)(delayed(indentifyMutationInformation)(record, reference_sequence_informations) for record in records)
-                                # Compute the frequency
-                                for d1 in data: 
-                                    organisme_type = d1[2]
-                                    pattern = d1[4]
-                                    n_total = 0 
-                                    n_pattern = 0
-                                    for d2 in data:
-                                        if organisme_type == d2[2]: 
-                                            n_total = n_total + 1
-                                            if pattern == d2[4]: 
-                                                n_pattern = n_pattern + 1
-                                    frequency = int(n_pattern / n_total * 100)
-                                    d1.append(frequency)
+            for record in records: 
+                data.append([record["id"], None, record["type"], key, record["pattern"], None, None, record["position"]])
 
-                                # Convert data to dataframe      
-                                df = pd.DataFrame(data, columns = ["SEQUENCE ID", "ORGANISM", "TYPE", "INITIAL PATTERN", "MUTATED PATTERN", "GENE", "MUTATIONS", "LOCATION", "FREQUENCY"])
-                                # Save the dataframe to excel file
-                                df.to_excel("output/" + key + "_gene_" + reference_sequence_informations["gene"] + ".xlsx")
-                    
-                    # Check for other features
-                    if isCDS == False:
-                        data = []
-                         # Iterate through the features of the reference sequence
-                        for feature in gb_record.features:
-                            seq = feature.location.extract(gb_record.seq)
-                            # If the nucleotide sequence contains the pattern
-                            if seq.find(record["pattern"]) != -1: 
-                                # Save informations
-                                if feature.type == "rep_origin" or feature.type == "gene" or feature.type == "misc_feature":  
-                                    if feature.type == "gene":
-                                        try: reference_sequence_informations["gene"] = feature.qualifiers["gene"][0]
-                                        except: reference_sequence_informations["gene"] = None
-                                    else:  
-                                        try: reference_sequence_informations["gene"] = feature.qualifiers["note"][0]
-                                        except: reference_sequence_informations["gene"] = None
-        
-                        # Iterate through the sequences records to complte the infornations according to the reference informations
-                        for record in records:
-                            # If same pattern as reference sequence 
-                            if record["pattern"] == reference_sequence_informations["pattern"]:
-                                data.append([record["id"], reference_sequence_informations["organisme"], record["type"], reference_sequence_informations["pattern"], None, reference_sequence_informations["gene"], None, record["position"]])
-                            # If different pattern as reference sequence        
-                            else: 
-                                if record["pattern"] != None:
-                                    data.append([record["id"], reference_sequence_informations["organisme"], record["type"],reference_sequence_informations["pattern"],record["pattern"], reference_sequence_informations["gene"], "No CDS",record["position"]])
-                                    
-                                # If unidentified pattern
-                                else: 
-                                    data.append([record["id"], reference_sequence_informations["organisme"], record["type"], reference_sequence_informations["pattern"], "Not identified", "Not identified", "Not identified", "Not identified"])
-                                # Convert data to dataframe      
-                                df = pd.DataFrame(data, columns = ["SEQUENCE ID", "ORGANISM", "TYPE", "INITIAL PATTERN", "MUTATED PATTERN", "GENE", "MUTATIONS", "LOCATION"])
-                                # Save the dataframe to excel file
-                                df.to_excel("output/" + key + "_gene_" + reference_sequence_informations["gene"] + ".xlsx")        
+            # Compute the frequency
+            for d1 in data: 
+                organisme_type = d1[2]
+                pattern = d1[4]
+                n_total = 0 
+                n_pattern = 0
+
+                for d2 in data:
+                    if organisme_type == d2[2]: 
+                        n_total = n_total + 1
+                        if pattern == d2[4]: 
+                            n_pattern = n_pattern + 1
+                frequency = int(n_pattern / n_total * 100)
+                d1.append(frequency)
+
+            # Convert data to dataframe      
+            df = pd.DataFrame(data, columns = ["SEQUENCE ID", "ORGANISM", "TYPE", "INITIAL PATTERN", "MUTATED PATTERN", "GENE", "MUTATIONS", "LOCATION", "FREQUENCY"])
+            # Save the dataframe to excel file
+            df.to_excel("output/" + key + ".xlsx")           

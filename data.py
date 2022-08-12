@@ -19,7 +19,9 @@ def loadData(file_path):
 # Function to load test data from a fasta file
 def loadReferenceSequence(D, reference_sequence_file):
 	# Iterate through the genbank file
-	for gb_record in  Bio.SeqIO.parse(open(reference_sequence_file,"r"), "genbank"):
-		D = [[gb_record.annotations["accessions"][0], str(gb_record.seq.upper()).replace('N',''), "Reference_sequence"]] + D
+	try:
+		for gb_record in Bio.SeqIO.parse(open(reference_sequence_file,"r"), "genbank"):
+			D = [[gb_record.annotations["accessions"][0], str(gb_record.seq.upper()), "Reference_sequence"]] + D
+	except: pass
 	# Return the data matrix
 	return D
