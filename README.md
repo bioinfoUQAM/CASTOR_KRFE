@@ -6,7 +6,7 @@
 * Contact : lebatteux.dylan@courrier.uqam.ca
 
 ### Description
-CASTOR-KRFE is an alignment-free method to identify a set of genomic signatures based on k-mers to discriminate between groups of genomic sequences. The core of CASTOR-KRFE is based on feature elimination using Support Vector Machines (SVM-RFE) which is an machine learning feature selection method. CASTOR-KRFE identifies an optimal length of k to maximize classification performance and minimize the number of features. The extracted set of k-mers can be used to build a prediction model. This model can then be used to predict a set of new genomic sequences. A new module allowing to identify signature variations and their associated information according to the sequence class has also been included. 
+CASTOR-KRFE is an alignment-free method to identify a set of k-mers to discriminate between groups of genomic sequences. The core of CASTOR-KRFE is based on feature elimination using Support Vector Machines (SVM-RFE) which is an machine learning feature selection method. CASTOR-KRFE identifies an optimal length of k to maximize classification performance and minimize the number of features. The extracted set of k-mers can be used to build a prediction model. This model can then be used to predict a set of new genomic sequences. A new module allowing to identify discriminative k-mers variations and their associated information according to the sequence class has also been included. 
 
 ### Required softwares
 * [python](https://www.python.org/downloads/) 
