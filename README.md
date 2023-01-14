@@ -1,7 +1,7 @@
 # CASTOR-KRFE
 * CASTOR-KRFE v1.3 Help file																		  
 * K-mers based feature identifier for viral genomic classification                            
-* Copyright (C) 2022  Dylan Lebatteux, Amine M. Remita, Abdoulaye Banire Diallo    
+* Copyright (C) 2023  Dylan Lebatteux, Amine M. Remita, Abdoulaye Banire Diallo    
 * Author : Dylan Lebatteux, Amine M. Remita													  
 * Contact : lebatteux.dylan@courrier.uqam.ca
 
@@ -19,9 +19,10 @@ CASTOR-KRFE is an alignment-free method to identify a set of k-mers to discrimin
 List of parameters requiring adjustment in the configuration_file.ini :
 * k_min : Minimum length of k-mers
 * k_max : Maximum length of k-mers
-* T : Percentage performance threshold (T = 0.999 is recommended) .
+* T : Percentage performance threshold (T = 0.99 is recommended) .
 * training_fasta : Training fasta file path
 * testing_fasta : Testing fasta file path
+* reference_sequence : Path of the reference sequence in GenBank format 
 * k_mers_path : Path file of the extracted k-mers
 * model_path : Path file of the prediction model
 * prediction_path : Path of the sequence prediction file

@@ -2,7 +2,6 @@
 import ml
 import sys
 import krfe
-import time
 import analyzer
 import configuration
 
@@ -31,7 +30,6 @@ while(True):
 		ml.predict(parameters)
 	# Analyzer the identified k-mers
 	elif option == 4: 
-		#start = time.time()
 		print("\nCASTOR-KRFE: motif analyzer mode\n")
 		Results = analyzer.identifyPerfectMatch(parameters)	
 		Results = analyzer.identifyVariations(Results, parameters)

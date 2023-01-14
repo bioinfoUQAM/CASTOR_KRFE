@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 # Function to instantiate a linear svm classifier
 def svm():
 	# Return a linear svm classifier
-	return SVC(kernel = 'linear', C = 1, cache_size = 2000)
+	return SVC(kernel = 'linear', C = 1, cache_size = 1000)
 
 # Function to instantiate a random forest classifier
 def randomForest():

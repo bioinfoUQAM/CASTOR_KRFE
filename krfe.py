@@ -66,7 +66,7 @@ def extract(parameters):
 		# Instantiate a linear svm classifier
 		clf = ml.svm()
 		# Preliminary RFE if n features > 1000 
-		rfe = RFE(estimator = clf , n_features_to_select = 1000, step = 0.1)
+		rfe = RFE(estimator = clf , n_features_to_select = 500, step = 0.1)
 		# Fit and transform the initial matrix
 		X = rfe.fit_transform(X, y)
 		# Compute the list of k-mers indices to retain 
