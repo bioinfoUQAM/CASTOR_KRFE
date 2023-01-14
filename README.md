@@ -35,11 +35,11 @@ List of parameters requiring adjustment in the configuration_file.ini :
 $ python main.py configuration_file.ini
 ```
 3) Select an option:
-- 1.Extract k-mers | Required parameters: T, k_min, k_max, training_fasta and k_mers_path
-- 2.Fit a model | Required parameters: training_fasta, k_mers_path and model_path
-- 3.Predict a sequences | Required parameters: testing_fasta, k_mers_path, model_path, prediction_path and evaluation_mode
-- 4.Motif analyzer | Required parameters: training_fasta, k_mers_path and reference_sequence
-- 5.Exit/Quit
+- 1) Extract k-mers | Required parameters: T, k_min, k_max, training_fasta and k_mers_path
+- 2) Fit a model | Required parameters: training_fasta, k_mers_path and model_path
+- 3) Predict a sequences | Required parameters: testing_fasta, k_mers_path, model_path, prediction_path and evaluation_mode
+- 4) Motif analyzer | Required parameters: training_fasta, k_mers_path and reference_sequence
+- 5) Exit/Quit
 
 ### Fasta file format example for n sequences: 
 
