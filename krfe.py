@@ -4,9 +4,13 @@ import sys
 import data
 import kmers
 import numpy
+import time
 import matrix
 import matplotlib.pyplot as plt
 from operator import itemgetter
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import make_scorer, f1_score
+from sklearn.feature_selection import SelectFromModel
 from sklearn.feature_selection import RFE, VarianceThreshold
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
@@ -40,17 +44,22 @@ def extract(parameters):
 
 	# Iterate through the length of k-mers to explore
 	for k in range(k_min, k_max + 1):
+		
 		# Displays the current analysis
 		print("Analysis of the " + str(k) + "-mers")
 		# Get the k-mers existing in the sequences
-		K = kmers.getKmers(k, D)
+		print("Get k-mers...")
+		K = kmers.getKmers(D, k)
 		# Generate the samples matrix (X) and the target values (y)
+		print("Compute matrices...")
 		X, y = matrix.generateSamplesTargets(D, K , k)
 		# Scale the features between 0 and 1
+		print("Scaling...")
 		X = ml.minMaxScaler(X)
 		# If it is possible to apply a variance filter
 		try:
 			# Instancies the filter method
+			print("VarianceThreshold...")
 			varianceThreshold = VarianceThreshold(threshold = 0.01)
 			# Apply the filter
 			X = varianceThreshold.fit_transform(X)
@@ -63,19 +72,21 @@ def extract(parameters):
 		# If not, pass on
 		except: pass
 
+		print("Reducing number of features with SelectFromModel...")
 		# Instantiate a linear svm classifier
 		clf = ml.svm()
-		# Preliminary RFE if n features > 1000 
-		rfe = RFE(estimator = clf , n_features_to_select = 500, step = 0.1)
-		# Fit and transform the initial matrix
-		X = rfe.fit_transform(X, y)
-		# Compute the list of k-mers indices to retain 
-		indices = [i for i, value in enumerate(rfe.support_) if value == True]
-		# Update the list of k-mers
-		K = dict.fromkeys(list(itemgetter(*indices)(list(K.keys()))), 0)
-		# Clear the indices list
-		indices.clear()
-
+		# Select from model
+		if len(X[0]) > 100 :
+			selectFromModel = SelectFromModel(estimator = clf, max_features = 100).fit(X, y)
+			indices = [i for i, value in enumerate(selectFromModel.get_support()) if value == True]
+			X = X[:,indices]
+			# Update the list of k-mers
+			K = dict.fromkeys(list(itemgetter(*indices)(list(K.keys()))), 0)
+			indices.clear()
+		else: pass
+		
+		# Get the number of features
+		n_features = numpy.size(X, 1)
 		# List of scores related to each subset of features
 		scores = []
 		# List of number features related to each subset of features
@@ -95,9 +106,9 @@ def extract(parameters):
 			# Split the data using stratified K-Folds cross-validator
 			skf = StratifiedKFold(n_splits = 5, random_state = 1, shuffle = True)
 			# Perform the cross-validation for the actual subset of features
-			y_pred = cross_val_predict(clf, X[:,indices], y, cv = skf, n_jobs = -1)
+			cv_results = cross_validate(clf, X[:,indices], y, cv=skf, scoring={'f1_macro': make_scorer(f1_score, average='macro')}, n_jobs=-1)
 			# Compute the F1 score of the actual subset of features
-			score = ml.compute_f1_score(y, y_pred)
+			score = cv_results['test_f1_macro'].mean()
 			# Save the score of the actual subset of features
 			scores.append(score)
 			# Save the number of features of the actual subset of features

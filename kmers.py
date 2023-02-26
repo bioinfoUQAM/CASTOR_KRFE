@@ -1,25 +1,33 @@
 # Import
 import re
 import Bio.SeqIO
-from collections import ChainMap
+from collections import defaultdict
 from joblib import Parallel, delayed
 
-# Function to extract the k-mers in sequence
-def extractKmers(d, k): 
-	# Initialize an empty dictionary for the k-mers
-	K = {}
-	# Go through the sequence 
-	for i in range(0, len(d[1]) - k + 1, 1):
-		# If the current k-mer contains only the characters A, C, G or T, it will be saved
-		if bool(re.match('^[ACGT]+$', d[1][i:i + k])) == True: K[d[1][i:i + k]] = 0
-	return K
+# Define a function to count the occurrences of k-mers in a single sequence
+def count_seq(seq, k):
+    # Create an empty dictionary to store the counts for each k-mer
+    counts = defaultdict(int)
+    # Iterate through the sequence, considering k-mer windows of length k
+    for j in range(len(seq) - k + 1):
+        # Extract the k-mer from the sequence
+        kmer = seq[j:j+k]
+        # Increment the count for this k-mer
+        counts[kmer] += 1
+    # Return the dictionary of k-mer counts
+    return counts
 
-# Function to get the k-mers from a list of sequences
-def getKmers(k, D): 
-	# Iterate through the data
-	data = Parallel(n_jobs = -1)(delayed(extractKmers)(d, k) for d in D)
-	# Return the dictionary of k-mers
-	return dict(ChainMap(*data))
+# Define a function to get the k-mers from a list of sequences
+def getKmers(D, k):
+    # Use the Parallel function to parallelize the counting of k-mers
+    # This will speed up the computation on multi-core CPUs
+    counts = Parallel(n_jobs=-1)(delayed(count_seq)(d[1], k) for d in D)
+    # Merge the counts into a single dictionary, with 0 as the default value
+    all_counts = defaultdict(int)
+    for count in counts:
+        all_counts.update(count)
+    # Return the dictionary of all k-mer counts
+    return all_counts
 
 # Function to save the extracted k-mers
 def saveExtractedKmers(k_mers_path, k_mers):
